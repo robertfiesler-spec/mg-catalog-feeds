@@ -31,6 +31,9 @@ jobs:
       - name: Validate (append-only, well-formed feed files)
         id: validate
         run: |
+          # pipefail: without it `validate | tee` reports tee's exit (0) and a
+          # rejected PR merges anyway (happened on PR #3, 2026-09-23).
+          set -o pipefail
           git diff --name-status "origin/${{ github.event.pull_request.base.ref }}...HEAD" > /tmp/name-status.txt
           cat /tmp/name-status.txt
           if python3 .github/scripts/validate_feed_pr.py /tmp/name-status.txt . | tee /tmp/verdict.txt; then
@@ -38,6 +41,8 @@ jobs:
           else
             echo "ok=false" >> "$GITHUB_OUTPUT"
           fi
+          # belt and braces: the verdict text itself must say auto-mergeable
+          grep -q '^auto-mergeable:' /tmp/verdict.txt || { echo "ok=false" >> "$GITHUB_OUTPUT"; echo "verdict not affirmative"; }
 
       - name: Merge
         if: steps.validate.outputs.ok == 'true'
