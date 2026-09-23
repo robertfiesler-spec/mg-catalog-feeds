@@ -1,0 +1,70 @@
+# Auto-merge gate for watcher feed PRs.
+#
+# Claude Code routines cannot push to main: each run pushes a claude/* branch
+# and opens a (draft) PR. This workflow is the append-only rule as a machine:
+# if the PR only ADDS well-formed daily feed files, it is marked ready and
+# squash-merged into main, which the laptop pulls. Anything else is left open
+# with a comment for the operator.
+name: auto-merge-feeds
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    branches: [main]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  gate:
+    if: >-
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      startsWith(github.event.pull_request.head.ref, 'claude/')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.sha }}
+
+      - name: Validate (append-only, well-formed feed files)
+        id: validate
+        run: |
+          git diff --name-status "origin/${{ github.event.pull_request.base.ref }}...HEAD" > /tmp/name-status.txt
+          cat /tmp/name-status.txt
+          if python3 .github/scripts/validate_feed_pr.py /tmp/name-status.txt . | tee /tmp/verdict.txt; then
+            echo "ok=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "ok=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Merge
+        if: steps.validate.outputs.ok == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR: ${{ github.event.pull_request.number }}
+        run: |
+          if [ "${{ github.event.pull_request.draft }}" = "true" ]; then
+            gh pr ready "$PR"
+          fi
+          gh pr merge "$PR" --squash --delete-branch \
+            --subject "$(gh pr view "$PR" --json title -q .title) (#$PR)" \
+            --body "auto-merged by auto-merge-feeds: $(cat /tmp/verdict.txt)"
+
+      - name: Leave for a human
+        if: steps.validate.outputs.ok == 'false'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR: ${{ github.event.pull_request.number }}
+        run: |
+          {
+            echo "**auto-merge-feeds: not auto-merged.** This PR is not a pure append of well-formed feed files:"
+            echo
+            echo '```'
+            cat /tmp/verdict.txt
+            echo '```'
+            echo
+            echo "An operator has to review it. (Feed files must be new paths \`daily_feeds/<date>/catalog_feed_<date>_<watcher>.md\` with a matching header.)"
+          } | gh pr comment "$PR" --body-file -
+          exit 1
