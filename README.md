@@ -14,3 +14,5 @@ Daily watcher feed files for the Mining Guardian catalog intake.
 - Rules: append-only (machine-enforced by the gate above); never rewrite a past day's file (the intake hashes finding-blocks and logs `monitoring.standing_feed_runs`
   by (feed_date, watcher, sha256)). A correction is a new finding in a later day's file, citing the earlier one.
 - Design: Mining-Guardian repo `claude/26_WATCHER_MIGRATION_DESIGN.md`.
+
+<!-- gate test: this line must NOT be auto-merged -->
