@@ -29,5 +29,5 @@ confidence: confirmed
 source_url: https://service.bitmain.com/support/download
 date_found: 2026-11-20
 watcher_inferred: false
-note: Official Bitmain firmware download page (BTC/BCH/BSV SHA256 list, ANTMINER S21j XP Hyd.); only firmware file listed for this model, updated 2026-11-20; page prints MD5 f69181c878e5c1efd4948e32b854cb0f, identical to the S21 XP+ Hyd. file; supersedes FR-1.31(260525-S21j XP Hyd.).bmu from the 2026-11-18 feed.
+note: Official Bitmain firmware download page (BTC/BCH/BSV SHA256 list, ANTMINER S21j XP Hyd.); only firmware file listed for this model, updated 2026-11-20; page prints MD5 f69181c878e5c1efd4948e32b854cb0f, identical to the S21 XP+ Hyd. file; supersedes FR-1.31(260525-S21j XP Hyd.).bmu from the 2026-11-17 feed.
 ```
